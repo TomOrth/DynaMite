@@ -1,17 +1,22 @@
 //Need to download MakeBlock library into Arduino IDE
-#include <Makeblock.h> 
+#include "MeMegaPi.h"
+#include <Wire.h>
 #include <SoftwareSerial.h>
  
 #define MeMCore_H 
 #define Rx 10 // DOUT to pin 10
 #define Tx 11 // DIN to pin 11
 
+MeMegaPiDCMotor MotorR(PORT1B); 
+MeMegaPiDCMotor MotorL(PORT2B); 
+MeLineFollower lineFollower(PORT_7); //line follower
+MeUltrasonicSensor ultraSensor_X(PORT_8);
 
-MeDCMotor MotorL(M1);  
-MeDCMotor MotorR(M2);
-MeLineFollower lineFollower(PORT_2); //line follower
-MeUltrasonicSensor ultraSensor_X(PORT_3);
-MeUltrasonicSensor ultraSensor_Y(PORT_4);
+//Prob can get rid of
+MeUltrasonicSensor ultraSensor_Y(PORT_5);
+
+//Needs to be added to hardware and port needs to be changed
+MeBluetooth bluetooth(PORT_5);
 
 uint8_t moveSpeed = 150;
 double lineDirIndex=10;
@@ -21,31 +26,32 @@ double dist_Y;
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600); 
-  Bluetooth.begin(9600);  
+  bluetooth.begin(9600);  
+  Serial.println("setup");
   delay(500);
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-
   // measurements from ultrasonic sensors
   dist_X = ultraSensor_X.distanceCm();
-  bluetooth.print(dist_X);
+  //bluetooth.print(dist_X);
+  Serial.println(ultraSensor_X.distanceCm());
 
   dist_Y = ultraSensor_Y.distanceCm();
-  bluetooth.print(dist_Y);
+  //bluetooth.print(dist_Y);
   
-  if(dist<9 && dist>1) 
+  /*if(dist<9 && dist>1) 
   {
     obstacleAvoidance();      
   } else {
     lineFollow();  
-  } 
+  } */
+  Forward();
 }
 
 void lineFollow(){
   int sensorStateCenter = lineFollower.readSensors();
-  
+
   if(moveSpeed>230) {
     moveSpeed=230;
   }
@@ -98,13 +104,14 @@ void obstacleAvoidance() {
 
 void Forward()
 {
-  MotorL.run(-moveSpeed);
-  MotorR.run(moveSpeed);
+  MotorL.run(moveSpeed);
+  MotorR.run(-moveSpeed);
+  delay(1000);
 }
 void Backward()
 {
-  MotorL.run(moveSpeed);
-  MotorR.run(-moveSpeed);
+  MotorL.run(-moveSpeed);
+  MotorR.run(moveSpeed);
 }
 void TurnLeft()
 {
