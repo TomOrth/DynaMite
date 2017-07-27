@@ -11,75 +11,73 @@ MeMegaPiDCMotor MotorR(PORT1B);
 MeMegaPiDCMotor MotorL(PORT2B); 
 MeLineFollower lineFollower(PORT_7); //line follower
 MeUltrasonicSensor ultraSensor_X(PORT_8);
+MeGyro gyro;
 
-//Prob can get rid of
-MeUltrasonicSensor ultraSensor_Y(PORT_5);
-
-//Needs to be added to hardware and port needs to be changed
-MeBluetooth bluetooth(PORT_5);
-
-uint8_t moveSpeed = 150;
+int moveSpeed = 95;
 double lineDirIndex=10;
 double dist_X;
 double dist_Y;
+uint8_t input;
+int movement;
+String data;
+int backward;
 
 void setup() {
   // put your setup code here, to run once:
-  Serial.begin(9600); 
-  bluetooth.begin(9600);  
-  Serial.println("setup");
+  Serial3.begin(115200);  
+  gyro.begin();
   delay(500);
+  movement = 0;
+  backward = 0;
 }
 
 void loop() {
-  // measurements from ultrasonic sensors
-  dist_X = ultraSensor_X.distanceCm();
-  //bluetooth.print(dist_X);
-  Serial.println(ultraSensor_X.distanceCm());
-
-  dist_Y = ultraSensor_Y.distanceCm();
-  //bluetooth.print(dist_Y);
-  
-  /*if(dist<9 && dist>1) 
-  {
-    obstacleAvoidance();      
-  } else {
-    lineFollow();  
-  } */
-  Forward();
+      input = Serial3.read();
+      
+      if (input == 115) {
+          movement = 1;
+      }
+      if (input == 101) {
+          Stop();
+          movement = 0;
+      }
+      if (movement > 0) {
+        lineFollow();
+        if (backward == 0) {
+          gyro.update();
+          dist_X = ultraSensor_X.distanceCm();
+          data = "";
+          Serial3.println(data + dist_X + " " + gyro.getAngleZ());
+        }
+      }
+      
+      delay(150);
 }
 
 void lineFollow(){
   int sensorStateCenter = lineFollower.readSensors();
-
-  if(moveSpeed>230) {
-    moveSpeed=230;
-  }
+  
   switch(sensorStateCenter)
   {
     case S1_IN_S2_IN: 
-      //Serial.println("Sensor 1 and 2 are inside of black line"); 
       Forward(); // Forward    
-      lineDirIndex=10;
+      lineDirIndex=10; 
       break;
-    case S1_IN_S2_OUT: 
-      //Serial.println("Sensor 2 is outside of black line"); 
-      Forward(); // Forward    
+    case S1_IN_S2_OUT:  
+      Forward();
       if(lineDirIndex>1) {
         lineDirIndex--;
       }       
       break;
     case S1_OUT_S2_IN: 
-      //Serial.println("Sensor 1 is outside of black line"); 
-      Forward(); // Forward
+      Forward();
       if(lineDirIndex<20) {
         lineDirIndex++;
       }     
       break;
-    case S1_OUT_S2_OUT: 
-      //Serial.println("Sensor 1 and 2 are outside of black line"); 
+    case S1_OUT_S2_OUT:  
       if(lineDirIndex==10){
-      Backward(); // Backward
+        Backward(); // Backward
       }
       if(lineDirIndex==10.5){
       MotorL.run(-moveSpeed); // Turn right
@@ -104,24 +102,28 @@ void obstacleAvoidance() {
 
 void Forward()
 {
+  backward = 0;
   MotorL.run(moveSpeed);
   MotorR.run(-moveSpeed);
-  delay(1000);
 }
 void Backward()
 {
+  backward = 1;
   MotorL.run(-moveSpeed);
+  MotorR.run(moveSpeed);
+}
+
+void TurnRight()
+{
+  backward = 0;
+  MotorL.run(-moveSpeed/5); // Turn right
   MotorR.run(moveSpeed);
 }
 void TurnLeft()
 {
-  MotorL.run(-moveSpeed/10); // Turn left
-  MotorR.run(moveSpeed);
-}
-void TurnRight()
-{
-  MotorL.run(-moveSpeed); // Turn right
-  MotorR.run(moveSpeed/10);
+  backward = 0;
+  MotorL.run(-moveSpeed); // Turn left
+  MotorR.run(moveSpeed/5);
 }
 void Stop()
 {
