@@ -125,7 +125,7 @@ public class DynaGui extends Application {
         ycoord.add(250.0);
         port.setComPortTimeouts(SerialPort.TIMEOUT_READ_SEMI_BLOCKING, 0, 0);
         final ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
-        executorService.scheduleAtFixedRate(DynaGui::readData, 0, 200, TimeUnit.MILLISECONDS);
+        executorService.scheduleAtFixedRate(DynaGui::readData, 0, 50, TimeUnit.MILLISECONDS);
     }
     
     private static void readData() {
@@ -136,8 +136,9 @@ public class DynaGui extends Application {
                 dataEntry = data.nextLine();
                 if (!dataEntry.equals("")) {
                     System.out.println(dataEntry);
-                    xcoord.add(++count);
-                    ycoord.add(250.0 + Double.parseDouble(dataEntry.split(" ")[0]) / 2);
+                    count += 3;
+                    xcoord.add(count);
+                    ycoord.add(250.0 + Double.parseDouble(dataEntry.split(" ")[0]));
                 }
             }catch(Exception e){}
         }
@@ -161,7 +162,7 @@ public class DynaGui extends Application {
         wall.play();
         
         
-        Animation robot = createPathAnimation(rPath, Duration.seconds(3));
+        Animation robot = createRPathAnimation(rPath, Duration.seconds(3));
         robot.play();
     }
 
@@ -205,7 +206,7 @@ public class DynaGui extends Application {
             before = ycoord.get(i-1);
             after = ycoord.get (i+1);
             cur = ycoord.get(i);
-            if ((Math.abs((cur - before)) > 50 && Math.abs((cur - after)) > 50) || cur > 400) {
+            if ((Math.abs((cur - before)) > 50 && Math.abs((cur - after)) > 50)) {
                 ycoord.remove(i);
                 xcoord.remove(i);
                 i--;
@@ -249,8 +250,56 @@ public class DynaGui extends Application {
                 }
 
                 // draw line
-                gc.setStroke(Color.GREEN);
-                gc.setFill(Color.GREEN);
+                gc.setStroke(Color.RED);
+                gc.setFill(Color.RED);
+                gc.setLineWidth(3);
+                gc.strokeLine(oldLocation.x, oldLocation.y, x, y);
+
+                // update old location with current one
+                oldLocation.x = x;
+                oldLocation.y = y;
+            }
+        });
+
+        return pathTransition;
+    }
+    
+    private Animation createRPathAnimation(Path path, Duration duration) {
+
+        GraphicsContext gc = canvas.getGraphicsContext2D();
+
+        // move a node along a path. we want its position
+        Circle pen = new Circle(0, 0, 10);
+
+        // create path transition
+        PathTransition pathTransition = new PathTransition( duration, path, pen);
+        pathTransition.currentTimeProperty().addListener( new ChangeListener<Duration>() {
+
+            Location oldLocation = null;
+
+            //Draw a line from the old location to the new location
+            @Override
+            public void changed(ObservableValue<? extends Duration> observable, Duration oldValue, Duration newValue) {
+
+                // skip starting at 0/0
+                if( oldValue == Duration.ZERO)
+                    return;
+
+                // get current location
+                double x = pen.getTranslateX();
+                double y = pen.getTranslateY();
+
+                // initialize the location
+                if( oldLocation == null) {
+                    oldLocation = new Location();
+                    oldLocation.x = x;
+                    oldLocation.y = y;
+                    return;
+                }
+
+                // draw line
+                gc.setStroke(Color.BLUE);
+                gc.setFill(Color.BLUE);
                 gc.setLineWidth(3);
                 gc.strokeLine(oldLocation.x, oldLocation.y, x, y);
 
