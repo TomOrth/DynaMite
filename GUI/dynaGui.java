@@ -33,6 +33,8 @@ public class DynaGui extends Application {
     private static double SCENE_HEIGHT = 600;
     static List<Double> xcoord;
     static List<Double> ycoord;
+    static List<Double> ycoordRobo;
+    static double roboY;
     static SerialPort port;
     static int inProg = 0;
     Canvas canvas;
@@ -66,6 +68,7 @@ public class DynaGui extends Application {
     private void trace(Stage primaryStage) {
         xcoord = new ArrayList<Double>();
         ycoord = new ArrayList<Double>();
+        ycoordRobo = new ArrayList<Double>();
         
         // Initiate bluetooth
         String robotPort = "/dev/cu.Makeblock-ELETSPP";
@@ -119,10 +122,7 @@ public class DynaGui extends Application {
         
         // Read in all sensor data
         count = 0;
-        xcoord.add(0.0);
-        
-        //convert 400 into variable that represents robot
-        ycoord.add(250.0);
+        roboY = 250;
         port.setComPortTimeouts(SerialPort.TIMEOUT_READ_SEMI_BLOCKING, 0, 0);
         final ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
         executorService.scheduleAtFixedRate(DynaGui::readData, 0, 50, TimeUnit.MILLISECONDS);
@@ -135,10 +135,17 @@ public class DynaGui extends Application {
             try{
                 dataEntry = data.nextLine();
                 if (!dataEntry.equals("")) {
-                    System.out.println(dataEntry);
-                    count += 3;
+                    System.out.println(roboY);
+                    count += 1;
                     xcoord.add(count);
-                    ycoord.add(250.0 + Double.parseDouble(dataEntry.split(" ")[0]));
+                    if (Double.parseDouble(dataEntry.split(" ")[1]) < 10) {
+                        roboY -= 1;
+                    }
+                    if (Double.parseDouble(dataEntry.split(" ")[1]) > 10) {
+                        roboY += 1;
+                    }
+                    ycoord.add(roboY + Double.parseDouble(dataEntry.split(" ")[0]));
+                    ycoordRobo.add(roboY);
                 }
             }catch(Exception e){}
         }
@@ -190,9 +197,9 @@ public class DynaGui extends Application {
         path.setStrokeWidth(.2);
 
         // Define movement between coordinates
-        path.getElements().add(new MoveTo(xcoord.get(0), ycoord.get(0)));
+        path.getElements().add(new MoveTo(xcoord.get(0), ycoordRobo.get(0)));
         for (int i = 1; i < xcoord.size(); i++) {
-            path.getElements().add(new LineTo(xcoord.get(i) , 250.0));
+            path.getElements().add(new LineTo(xcoord.get(i) , ycoordRobo.get(i)));
         }
 
         return path;
